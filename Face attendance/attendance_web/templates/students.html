@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Students{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="hero-content">
+        <h1><i class="fas fa-users"></i> Registered Students</h1>
+        <p>All students in the system</p>
+    </div>
+</div>
+
+<div class="students-grid">
+    {% for student in students %}
+    <div class="student-card">
+        <div class="student-avatar">{{ student.name[0]|upper }}</div>
+        <div class="student-info">
+            <h3>{{ student.name }}</h3>
+            <p class="roll-no">{{ student.roll_no }}</p>
+            <div class="student-meta">
+                <span>ID: {{ student.student_id }}</span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not students %}
+<div class="empty-state">
+    <i class="fas fa-users"></i>
+    <h3>No students registered</h3>
+    <p><a href="{{ url_for('register') }}">Register the first student</a></p>
+</div>
+{% endif %}
+{% endblock %}
+

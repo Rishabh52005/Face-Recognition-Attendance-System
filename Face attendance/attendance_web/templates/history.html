@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance History{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="hero-content">
+        <h1><i class="fas fa-history"></i> Attendance History</h1>
+        <p>Complete attendance records</p>
+    </div>
+</div>
+
+<div class="table-container">
+    {% if history %}
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Roll No</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in history %}
+                <tr>
+                    <td>
+                        <div class="user-row">
+                            <div class="user-avatar">{{ record.name[0]|upper }}</div>
+                            <span>{{ record.name }}</span>
+                        </div>
+                    </td>
+                    <td>{{ record.roll_no }}</td>
+                    <td>{{ record.date }}</td>
+                    <td>{{ record.time }}</td>
+                    <td><span class="status present">{{ record.status }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-history"></i>
+            <h3>No history available</h3>
+            <p>Register students and mark attendance to see history.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

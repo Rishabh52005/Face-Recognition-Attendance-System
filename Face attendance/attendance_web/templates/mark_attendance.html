@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Mark Attendance{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="hero-content">
+        <h1><i class="fas fa-video"></i> Mark Attendance</h1>
+        <p>Live face recognition attendance marking</p>
+    </div>
+</div>
+
+<div class="attendance-container">
+    <div class="video-section">
+        <div class="video-wrapper">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas" style="display: none;"></canvas>
+            <div id="status-overlay" class="status-overlay hidden">
+                <i class="fas fa-user-check"></i>
+                <h3 id="recognized-name"></h3>
+                <p id="status-message"></p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls-section">
+        <div class="modern-card">
+            <h3>Instructions</h3>
+            <ul class="instruction-list">
+                <li>Position your face in the camera frame</li>
+                <li>Look straight at the camera</li>
+                <li>Wait for recognition (max 30s per attempt)</li>
+                <li>Attendance marked once per day</li>
+            </ul>
+            <div class="today-info">
+                <strong>Today:</strong> <span id="today-date"></span>
+            </div>
+        </div>
+        
+        <button id="start-btn" class="btn-primary full-width">
+            <i class="fas fa-play"></i> Start Recognition
+        </button>
+        <button id="stop-btn" class="btn-secondary full-width hidden">
+            <i class="fas fa-stop"></i> Stop
+        </button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const statusOverlay = document.getElementById('status-overlay');
+    const recognizedName = document.getElementById('recognized-name');
+    const statusMessage = document.getElementById('status-message');
+    const todayDate = document.getElementById('today-date');
+    
+    // Set date
+    todayDate.textContent = new Date().toLocaleDateString();
+    
+    let stream = null;
+    let recognizing = false;
+    let markedCount = 0;
+    let isSuccessShowing = false;
+    
+    // Update instructions for today
+    todayDate.textContent = new Date().toLocaleDateString();
+    
+    startBtn.addEventListener('click', async () => {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: 640, 
+                    height: 480,
+                    facingMode: 'user'
+                } 
+            });
+            video.srcObject = stream;
+            video.onloadedmetadata = () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+            };
+            startBtn.classList.add('hidden');
+            stopBtn.classList.remove('hidden');
+            statusMessage.textContent = 'Position your face clearly in frame...';
+            statusOverlay.classList.remove('hidden');
+            recognizing = true;
+            setTimeout(recognizeFaces, 1000); // Initial delay
+        } catch (err) {
+            alert('Camera access denied or unavailable. Please check permissions.');
+            console.error('Camera error:', err);
+        }
+    });
+    
+    stopBtn.innerHTML = '<i class="fas fa-stop"></i> Stop Camera';
+    stopBtn.addEventListener('click', () => {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        recognizing = false;
+        isSuccessShowing = false;
+        markedCount = 0;
+        startBtn.classList.remove('hidden');
+        stopBtn.classList.add('hidden');
+        statusOverlay.classList.add('hidden');
+        video.srcObject = null;
+    });
+    
+    function showStatus(message, type = 'scanning') {
+        statusMessage.textContent = message;
+        statusOverlay.classList.remove('hidden');
+        // Add type-based styling if CSS supports
+        statusOverlay.className = `status-overlay ${type}`;
+    }
+    
+    async function recognizeFaces() {
+        if (!recognizing || isSuccessShowing) {
+            setTimeout(recognizeFaces, 1000);
+            return;
+        }
+        
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        
+        try {
+            const response = await fetch('/recognize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success && result.student_name) {
+                markedCount++;
+                recognizedName.textContent = result.student_name;
+                statusMessage.textContent = `Attendance marked for ${result.student_name}! (${markedCount} marked today)`;
+                statusOverlay.classList.remove('hidden');
+                isSuccessShowing = true;
+                
+                // Auto-hide success after 4s, continue scanning
+                setTimeout(() => {
+                    isSuccessShowing = false;
+                    statusMessage.textContent = `Ready for next person... (${markedCount} marked)`;
+                    setTimeout(() => {
+                        statusOverlay.classList.add('hidden');
+                    }, 2000);
+                }, 4000);
+            } else {
+                showStatus(result.message || 'No match found. Please try again.', 'error');
+                setTimeout(() => {
+                    showStatus('Position your face clearly in frame...', 'scanning');
+                    statusOverlay.classList.add('hidden');
+                }, 2000);
+            }
+        } catch (err) {
+            console.error('Recognition error:', err);
+            showStatus('Connection error. Retrying...', 'error');
+        }
+        
+        // Continue loop every 2s for better perf/multi-person
+        setTimeout(recognizeFaces, 2000);
+    }
+
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,915 @@
+{% extends "base.html" %}
+
+{% block title %}Statistics - Face Attendance{% endblock %}
+
+{% block extra_head %}
+<style>
+    .stats-shell {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    .stats-shell .hero-section {
+        margin-bottom: 0;
+    }
+
+    .stats-shell .stats-grid {
+        margin-bottom: 0;
+    }
+
+    .stats-grid .stat-card p {
+        color: var(--text-secondary);
+    }
+
+    .stat-note {
+        margin-top: 0.4rem;
+        color: var(--text-secondary);
+        font-size: 0.92rem;
+    }
+
+    .stats-insight-grid,
+    .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.5rem;
+    }
+
+    .stats-insight-grid .recent-activity,
+    .stats-insight-grid .modern-card,
+    .chart-panel {
+        height: 100%;
+    }
+
+    .stats-facts {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .fact-item {
+        padding: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.42);
+    }
+
+    [data-theme="dark"] .fact-item {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .fact-item span {
+        display: block;
+        color: var(--text-secondary);
+        font-size: 0.84rem;
+    }
+
+    .fact-item strong {
+        display: block;
+        margin-top: 0.45rem;
+        font-size: 1.5rem;
+        color: var(--text-primary);
+    }
+
+    .chart-panel {
+        overflow: hidden;
+    }
+
+    .chart-wrap {
+        position: relative;
+        min-height: 320px;
+        padding: 0 1.5rem 1.5rem;
+    }
+
+    .chart-wrap canvas {
+        width: 100% !important;
+        height: 320px !important;
+    }
+
+    .chart-wrap.hidden,
+    .chart-empty.hidden {
+        display: none;
+    }
+
+    .chart-empty {
+        min-height: 320px;
+        margin: 0 1.5rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 1rem;
+        border: 1px dashed var(--border);
+        border-radius: 20px;
+        color: var(--text-secondary);
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    [data-theme="dark"] .chart-empty {
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    .table-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-select {
+        min-width: 230px;
+        padding: 0.9rem 1rem;
+        border: 1px solid var(--border-strong);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.58);
+        color: var(--text-primary);
+        font: inherit;
+    }
+
+    [data-theme="dark"] .filter-select {
+        background: rgba(255, 255, 255, 0.08);
+        color: #f5fffd;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: rgba(20, 184, 166, 0.48);
+        box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.12);
+    }
+
+    .student-meta-inline {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+
+    .subtle-text {
+        color: var(--text-secondary);
+        font-size: 0.88rem;
+    }
+
+    .rate-cell {
+        min-width: 160px;
+    }
+
+    .rate-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.6rem;
+        padding: 0.38rem 0.75rem;
+        border-radius: 999px;
+        background: rgba(20, 184, 166, 0.14);
+        color: #0f766e;
+        font-size: 0.88rem;
+        font-weight: 700;
+    }
+
+    [data-theme="dark"] .rate-badge {
+        background: rgba(20, 184, 166, 0.18);
+        color: #b8fff3;
+    }
+
+    .progress-track {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.2);
+    }
+
+    .progress-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #14b8a6, #38bdf8);
+    }
+
+    .empty-table {
+        padding: 2rem 1rem !important;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+
+    @media (max-width: 1024px) {
+        .stats-insight-grid,
+        .chart-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-facts {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 768px) {
+        .stats-facts {
+            grid-template-columns: 1fr;
+        }
+
+        .table-actions {
+            width: 100%;
+        }
+
+        .filter-select,
+        .table-actions .btn-secondary {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .chart-wrap canvas {
+            height: 280px !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container stats-shell">
+    <div class="hero-section">
+        <div class="hero-content">
+            <h1><i class="fas fa-chart-line"></i> Attendance Statistics</h1>
+            <p>Track attendance performance with daily trends, student summaries, and real database-backed analytics.</p>
+            <p class="date-display"><i class="fas fa-calendar-check"></i> Last recorded attendance: <span id="latest-attendance">Loading...</span></p>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card admin-success">
+            <i class="fas fa-user-check"></i>
+            <div>
+                <h3 class="stat-number" id="today-present">0</h3>
+                <p>Present Today</p>
+                <p class="stat-note" id="today-present-note">Students marked present today</p>
+            </div>
+        </div>
+        <div class="stat-card admin-warning">
+            <i class="fas fa-wave-square"></i>
+            <div>
+                <h3 class="stat-number" id="today-rate">0%</h3>
+                <p>Today's Rate</p>
+                <p class="stat-note" id="today-rate-note">Calculated from registered students</p>
+            </div>
+        </div>
+        <div class="stat-card admin-primary">
+            <i class="fas fa-users"></i>
+            <div>
+                <h3 class="stat-number" id="total-students">0</h3>
+                <p>Total Students</p>
+                <p class="stat-note" id="total-students-note">Registered in the attendance system</p>
+            </div>
+        </div>
+        <div class="stat-card admin-info">
+            <i class="fas fa-bullseye"></i>
+            <div>
+                <h3 class="stat-number" id="overall-rate">0%</h3>
+                <p>Overall Rate</p>
+                <p class="stat-note" id="overall-rate-note">Across all recorded attendance days</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-insight-grid">
+        <div class="recent-activity">
+            <h3 id="headline-rate">0% average attendance rate</h3>
+            <p id="headline-copy">Loading attendance coverage from the database.</p>
+        </div>
+
+        <div class="modern-card">
+            <h3>Attendance Highlights</h3>
+            <div class="stats-facts">
+                <div class="fact-item">
+                    <span>Recorded Days</span>
+                    <strong id="recorded-days">0</strong>
+                </div>
+                <div class="fact-item">
+                    <span>Present Logs</span>
+                    <strong id="present-records">0</strong>
+                </div>
+                <div class="fact-item">
+                    <span>Avg Daily Present</span>
+                    <strong id="avg-daily-present">0</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chart-grid">
+        <section class="table-container chart-panel">
+            <div class="table-header">
+                <div>
+                    <h3>Attendance Trend</h3>
+                    <p class="table-note">Daily attendance rate across recorded days.</p>
+                </div>
+            </div>
+            <div class="chart-empty hidden" id="trend-empty">No attendance records are available yet.</div>
+            <div class="chart-wrap" id="trend-wrap">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </section>
+
+        <section class="table-container chart-panel">
+            <div class="table-header">
+                <div>
+                    <h3 id="student-chart-title">Attendance Rate by Student</h3>
+                    <p class="table-note" id="student-chart-caption">Compare attendance performance across all registered students.</p>
+                </div>
+            </div>
+            <div class="chart-empty hidden" id="student-empty">No student performance data is available yet.</div>
+            <div class="chart-wrap" id="student-wrap">
+                <canvas id="studentChart"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <section class="table-container">
+        <div class="table-header">
+            <div>
+                <h3>Student Attendance Summary</h3>
+                <p class="table-note" id="table-note">Showing all students.</p>
+            </div>
+            <div class="table-actions">
+                <select id="student-filter" class="filter-select">
+                    <option value="">All Students</option>
+                </select>
+                <button type="button" class="btn-secondary" onclick="exportData()">
+                    <i class="fas fa-download"></i> Export CSV
+                </button>
+            </div>
+        </div>
+
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Roll No</th>
+                    <th>Recorded Days</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>Rate</th>
+                    <th>Last Seen</th>
+                </tr>
+            </thead>
+            <tbody id="stats-table-body">
+                <tr>
+                    <td colspan="7" class="empty-table">Loading attendance statistics...</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let trendChart = null;
+let studentChart = null;
+const statsState = {
+    summary: null,
+    students: [],
+    filteredStudents: []
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('student-filter').addEventListener('change', applyFilter);
+    document.addEventListener('themechange', refreshChartsForTheme);
+    loadStats();
+});
+
+async function loadStats() {
+    try {
+        const response = await fetch('/api/stats', { credentials: 'include' });
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        statsState.summary = data;
+        statsState.students = Array.isArray(data.student_summaries) ? data.student_summaries : [];
+        populateFilter(data.students_list || []);
+        renderSummary(data);
+        renderTrendChart(data.trend || []);
+        applyFilter();
+    } catch (error) {
+        console.error('Unable to load statistics:', error);
+        renderErrorState();
+    }
+}
+
+function populateFilter(students) {
+    const filter = document.getElementById('student-filter');
+    filter.innerHTML = '<option value="">All Students</option>';
+
+    students.forEach((student) => {
+        const option = document.createElement('option');
+        option.value = student.student_id;
+        option.textContent = student.roll_no ? `${student.name} (${student.roll_no})` : student.name;
+        filter.appendChild(option);
+    });
+}
+
+function renderSummary(data) {
+    const totalStudents = Number(data.total_students || 0);
+    const presentToday = Number(data.present_today || 0);
+    const absentToday = Number(data.absent_today || 0);
+    const todayRate = Number(data.today_rate || 0);
+    const overallRate = Number(data.overall_rate || 0);
+    const recordedDays = Number(data.total_attendance_days || 0);
+    const presentRecords = Number(data.total_present_records || 0);
+    const averageDailyPresent = Number(data.average_daily_present || 0);
+
+    document.getElementById('today-present').textContent = formatNumber(presentToday);
+    document.getElementById('today-present-note').textContent = absentToday > 0 ? `${formatNumber(absentToday)} absent today` : 'No absences recorded today';
+    document.getElementById('today-rate').textContent = formatPercent(todayRate);
+    document.getElementById('today-rate-note').textContent = totalStudents > 0 ? `${formatNumber(presentToday)} of ${formatNumber(totalStudents)} students present` : 'No registered students yet';
+    document.getElementById('total-students').textContent = formatNumber(totalStudents);
+    document.getElementById('total-students-note').textContent = totalStudents > 0 ? 'Registered in the attendance system' : 'No students registered yet';
+    document.getElementById('overall-rate').textContent = formatPercent(overallRate);
+    document.getElementById('overall-rate-note').textContent = recordedDays > 0 ? `Based on ${formatNumber(recordedDays)} recorded day${recordedDays === 1 ? '' : 's'}` : 'Waiting for attendance history';
+
+    document.getElementById('recorded-days').textContent = formatNumber(recordedDays);
+    document.getElementById('present-records').textContent = formatNumber(presentRecords);
+    document.getElementById('avg-daily-present').textContent = formatNumber(averageDailyPresent);
+    document.getElementById('latest-attendance').textContent = data.latest_attendance_date ? formatDate(data.latest_attendance_date) : 'No records yet';
+
+    document.getElementById('headline-rate').textContent = `${formatPercent(overallRate)} average attendance rate`;
+    document.getElementById('headline-copy').textContent = recordedDays > 0
+        ? `${formatNumber(presentRecords)} present logs have been captured across ${formatNumber(recordedDays)} recorded day${recordedDays === 1 ? '' : 's'} for ${formatNumber(totalStudents)} registered students.`
+        : 'Attendance insights will appear here once attendance has been recorded.';
+}
+
+function applyFilter() {
+    const selectedId = document.getElementById('student-filter').value;
+    const filtered = selectedId
+        ? statsState.students.filter((student) => String(student.student_id) === selectedId)
+        : [...statsState.students];
+
+    statsState.filteredStudents = filtered;
+    updateTable(filtered);
+    updateTableNote(filtered.length, selectedId);
+    renderStudentChart(filtered, selectedId);
+}
+
+function refreshChartsForTheme() {
+    if (!statsState.summary) {
+        return;
+    }
+
+    renderTrendChart(statsState.summary.trend || []);
+    renderStudentChart(statsState.filteredStudents, document.getElementById('student-filter').value);
+}
+
+function getThemePalette() {
+    const styles = getComputedStyle(document.body);
+    const isDark = document.body.dataset.theme === 'dark';
+    const readVar = (name, fallback) => styles.getPropertyValue(name).trim() || fallback;
+
+    return {
+        textPrimary: readVar('--text-primary', isDark ? '#f5fffd' : '#13282c'),
+        textSecondary: readVar('--text-secondary', isDark ? '#c0d8d5' : '#5d7074'),
+        grid: isDark ? 'rgba(188, 222, 217, 0.16)' : 'rgba(19, 40, 44, 0.12)',
+        barFill: isDark ? 'rgba(45, 212, 191, 0.28)' : 'rgba(20, 184, 166, 0.28)',
+        barStroke: isDark ? 'rgba(94, 234, 212, 0.48)' : 'rgba(20, 184, 166, 0.42)',
+        lineStroke: isDark ? '#5eead4' : '#0f766e',
+        lineFill: isDark ? 'rgba(45, 212, 191, 0.14)' : 'rgba(56, 189, 248, 0.14)',
+        accentStrong: isDark ? 'rgba(45, 212, 191, 0.84)' : 'rgba(20, 184, 166, 0.82)',
+        accentAlt: isDark ? 'rgba(103, 232, 249, 0.76)' : 'rgba(56, 189, 248, 0.72)',
+        present: isDark ? '#2dd4bf' : '#14b8a6',
+        absent: '#fb7185',
+        tooltipBg: isDark ? 'rgba(7, 18, 23, 0.96)' : 'rgba(255, 255, 255, 0.96)',
+        tooltipBorder: isDark ? 'rgba(188, 222, 217, 0.18)' : 'rgba(19, 40, 44, 0.12)'
+    };
+}
+
+function updateTable(students) {
+    const tbody = document.getElementById('stats-table-body');
+    if (!students.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-table">No student statistics match the current filter.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = students.map((student) => {
+        const name = escapeHtml(student.name || 'Unknown');
+        const rollNo = escapeHtml(student.roll_no || 'N/A');
+        const initial = escapeHtml(((student.name || 'U').trim().charAt(0) || 'U').toUpperCase());
+        const totalDays = Number(student.total_days || 0);
+        const presentDays = Number(student.present_days || 0);
+        const absentDays = Number(student.absent_days || 0);
+        const rate = clamp(Number(student.attendance_rate || 0), 0, 100);
+        const lastSeen = student.last_present_date ? formatDate(student.last_present_date) : 'Never';
+
+        return `
+            <tr>
+                <td>
+                    <div class="user-row">
+                        <div class="user-avatar">${initial}</div>
+                        <div class="student-meta-inline">
+                            <strong>${name}</strong>
+                            <span class="subtle-text">Student ID: ${escapeHtml(String(student.student_id))}</span>
+                        </div>
+                    </div>
+                </td>
+                <td>${rollNo}</td>
+                <td>${formatNumber(totalDays)}</td>
+                <td>${formatNumber(presentDays)}</td>
+                <td>${formatNumber(absentDays)}</td>
+                <td>
+                    <div class="rate-cell">
+                        <span class="rate-badge">${formatPercent(rate)}</span>
+                        <div class="progress-track">
+                            <div class="progress-fill" style="width: ${rate}%;"></div>
+                        </div>
+                    </div>
+                </td>
+                <td>${escapeHtml(lastSeen)}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function updateTableNote(count, selectedId) {
+    const totalStudents = statsState.students.length;
+    const recordedDays = Number((statsState.summary && statsState.summary.total_attendance_days) || 0);
+    const selectedStudent = selectedId
+        ? statsState.students.find((student) => String(student.student_id) === selectedId)
+        : null;
+
+    let message = `Showing ${formatNumber(count)} of ${formatNumber(totalStudents)} student${totalStudents === 1 ? '' : 's'}.`;
+    if (selectedStudent) {
+        message = `Showing ${selectedStudent.name}'s attendance summary.`;
+    }
+
+    if (recordedDays > 0) {
+        message += ` Rates are based on ${formatNumber(recordedDays)} recorded day${recordedDays === 1 ? '' : 's'}.`;
+    }
+
+    document.getElementById('table-note').textContent = message;
+}
+
+function renderTrendChart(trend) {
+    const hasChartLibrary = typeof Chart !== 'undefined';
+    const hasData = Array.isArray(trend) && trend.length > 0;
+    const palette = getThemePalette();
+    toggleChartArea('trend', hasChartLibrary && hasData, hasChartLibrary ? 'No attendance records are available yet.' : 'Chart library failed to load.');
+
+    if (!hasChartLibrary || !hasData) {
+        if (trendChart) {
+            trendChart.destroy();
+            trendChart = null;
+        }
+        return;
+    }
+
+    const labels = trend.map((entry) => formatShortDate(entry.date));
+    const presentCounts = trend.map((entry) => Number(entry.present_count || 0));
+    const attendanceRates = trend.map((entry) => Number(entry.attendance_rate || 0));
+    const ctx = document.getElementById('trendChart');
+
+    if (trendChart) {
+        trendChart.destroy();
+    }
+
+    trendChart = new Chart(ctx, {
+        data: {
+            labels,
+            datasets: [
+                {
+                    type: 'bar',
+                    label: 'Present Students',
+                    data: presentCounts,
+                    backgroundColor: palette.barFill,
+                    borderColor: palette.barStroke,
+                    borderWidth: 1,
+                    borderRadius: 12,
+                    yAxisID: 'yStudents'
+                },
+                {
+                    type: 'line',
+                    label: 'Attendance Rate',
+                    data: attendanceRates,
+                    borderColor: palette.lineStroke,
+                    backgroundColor: palette.lineFill,
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 4,
+                    pointHoverRadius: 5,
+                    yAxisID: 'yRate'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: palette.textSecondary,
+                        usePointStyle: true,
+                        padding: 18
+                    }
+                },
+                tooltip: {
+                    backgroundColor: palette.tooltipBg,
+                    titleColor: palette.textPrimary,
+                    bodyColor: palette.textSecondary,
+                    borderColor: palette.tooltipBorder,
+                    borderWidth: 1,
+                    callbacks: {
+                        label(context) {
+                            const value = context.parsed.y;
+                            if (context.dataset.label === 'Attendance Rate') {
+                                return `${context.dataset.label}: ${formatPercent(value)}`;
+                            }
+                            return `${context.dataset.label}: ${formatNumber(value)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                yStudents: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0,
+                        color: palette.textSecondary
+                    },
+                    grid: {
+                        color: palette.grid
+                    }
+                },
+                yRate: {
+                    beginAtZero: true,
+                    max: 100,
+                    position: 'right',
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    ticks: {
+                        color: palette.textSecondary,
+                        callback(value) {
+                            return `${value}%`;
+                        }
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: palette.textSecondary
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderStudentChart(students, selectedId) {
+    const hasChartLibrary = typeof Chart !== 'undefined';
+    const palette = getThemePalette();
+    const selectedStudent = selectedId
+        ? statsState.students.find((student) => String(student.student_id) === selectedId)
+        : null;
+    const hasData = selectedStudent
+        ? Number(selectedStudent.total_days || 0) > 0
+        : Array.isArray(students) && students.length > 0 && students.some((student) => Number(student.total_days || 0) > 0);
+
+    toggleChartArea('student', hasChartLibrary && hasData, hasChartLibrary ? 'No student performance data is available yet.' : 'Chart library failed to load.');
+
+    if (!hasChartLibrary || !hasData) {
+        if (studentChart) {
+            studentChart.destroy();
+            studentChart = null;
+        }
+        document.getElementById('student-chart-title').textContent = 'Attendance Rate by Student';
+        document.getElementById('student-chart-caption').textContent = 'Compare attendance performance across all registered students.';
+        return;
+    }
+
+    const ctx = document.getElementById('studentChart');
+    if (studentChart) {
+        studentChart.destroy();
+    }
+
+    if (selectedStudent) {
+        document.getElementById('student-chart-title').textContent = `${selectedStudent.name}'s Attendance Breakdown`;
+        document.getElementById('student-chart-caption').textContent = `Present versus absent days across ${formatNumber(selectedStudent.total_days || 0)} recorded attendance day${Number(selectedStudent.total_days || 0) === 1 ? '' : 's'}.`;
+
+        studentChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Present Days', 'Absent Days'],
+                datasets: [{
+                    data: [
+                        Number(selectedStudent.present_days || 0),
+                        Number(selectedStudent.absent_days || 0)
+                    ],
+                    backgroundColor: [palette.present, palette.absent],
+                    borderWidth: 0,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '62%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: palette.textSecondary,
+                            usePointStyle: true,
+                            padding: 18
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: palette.tooltipBg,
+                        titleColor: palette.textPrimary,
+                        bodyColor: palette.textSecondary,
+                        borderColor: palette.tooltipBorder,
+                        borderWidth: 1,
+                        callbacks: {
+                            label(context) {
+                                return `${context.label}: ${formatNumber(context.parsed)}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        return;
+    }
+
+    const sortedStudents = [...students].sort((left, right) => {
+        const rateDifference = Number(right.attendance_rate || 0) - Number(left.attendance_rate || 0);
+        if (rateDifference !== 0) {
+            return rateDifference;
+        }
+        return String(left.name || '').localeCompare(String(right.name || ''));
+    });
+
+    document.getElementById('student-chart-title').textContent = 'Attendance Rate by Student';
+    document.getElementById('student-chart-caption').textContent = 'Students are ranked by attendance rate across recorded attendance days.';
+
+    studentChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sortedStudents.map((student) => student.name),
+            datasets: [{
+                label: 'Attendance Rate',
+                data: sortedStudents.map((student) => Number(student.attendance_rate || 0)),
+                backgroundColor: sortedStudents.map((student, index) => index === 0 ? palette.accentStrong : palette.accentAlt),
+                borderRadius: 12,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: palette.tooltipBg,
+                    titleColor: palette.textPrimary,
+                    bodyColor: palette.textSecondary,
+                    borderColor: palette.tooltipBorder,
+                    borderWidth: 1,
+                    callbacks: {
+                        label(context) {
+                            const student = sortedStudents[context.dataIndex];
+                            return `Rate: ${formatPercent(context.parsed.x)} (${formatNumber(student.present_days || 0)}/${formatNumber(student.total_days || 0)} days)`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        color: palette.textSecondary,
+                        callback(value) {
+                            return `${value}%`;
+                        }
+                    },
+                    grid: {
+                        color: palette.grid
+                    }
+                },
+                y: {
+                    ticks: {
+                        color: palette.textSecondary
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+function toggleChartArea(prefix, showCanvas, emptyMessage) {
+    const wrap = document.getElementById(`${prefix}-wrap`);
+    const empty = document.getElementById(`${prefix}-empty`);
+    wrap.classList.toggle('hidden', !showCanvas);
+    empty.classList.toggle('hidden', showCanvas);
+    if (!showCanvas) {
+        empty.textContent = emptyMessage;
+    }
+}
+
+function renderErrorState() {
+    document.getElementById('latest-attendance').textContent = 'Unavailable';
+    document.getElementById('headline-rate').textContent = 'Statistics unavailable';
+    document.getElementById('headline-copy').textContent = 'The page could not load attendance data right now.';
+    document.getElementById('stats-table-body').innerHTML = '<tr><td colspan="7" class="empty-table">Unable to load attendance statistics.</td></tr>';
+    toggleChartArea('trend', false, 'Unable to load attendance trend.');
+    toggleChartArea('student', false, 'Unable to load student performance.');
+}
+
+function exportData() {
+    const rows = statsState.filteredStudents.length ? statsState.filteredStudents : statsState.students;
+    if (!rows.length) {
+        return;
+    }
+
+    const header = ['Student', 'Roll No', 'Recorded Days', 'Present', 'Absent', 'Rate', 'Last Seen'];
+    const csvLines = [
+        header.map(escapeCsv).join(','),
+        ...rows.map((student) => ([
+            student.name || 'Unknown',
+            student.roll_no || 'N/A',
+            Number(student.total_days || 0),
+            Number(student.present_days || 0),
+            Number(student.absent_days || 0),
+            formatPercent(Number(student.attendance_rate || 0)),
+            student.last_present_date ? formatDate(student.last_present_date) : 'Never'
+        ].map(escapeCsv).join(',')))
+    ];
+
+    const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `attendance_stats_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+}
+
+function formatDate(isoDate) {
+    const parsedDate = parseIsoDate(isoDate);
+    return parsedDate
+        ? new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' }).format(parsedDate)
+        : 'N/A';
+}
+
+function formatShortDate(isoDate) {
+    const parsedDate = parseIsoDate(isoDate);
+    return parsedDate
+        ? new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' }).format(parsedDate)
+        : 'N/A';
+}
+
+function parseIsoDate(isoDate) {
+    if (!isoDate || typeof isoDate !== 'string') {
+        return null;
+    }
+
+    const parts = isoDate.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) {
+        return null;
+    }
+
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function formatNumber(value) {
+    const number = Number(value || 0);
+    return Number.isInteger(number) ? String(number) : number.toFixed(1);
+}
+
+function formatPercent(value) {
+    return `${formatNumber(value)}%`;
+}
+
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
+function escapeCsv(value) {
+    return `"${String(value).replaceAll('"', '""')}"`;
+}
+</script>
+{% endblock %}

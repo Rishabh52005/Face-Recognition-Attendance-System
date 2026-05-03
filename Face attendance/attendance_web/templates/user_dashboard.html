@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+
+{% block title %}User Dashboard - Face Attendance{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1><i class="fas fa-user"></i> User Dashboard</h1>
+        <p>Attendance overview</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card user-primary">
+            <i class="fas fa-chart-line"></i>
+            <div>
+                <h3>Today's Attendance</h3>
+                <span class="stat-number" id="present-count">Loading...</span>
+            </div>
+        </div>
+        <div class="stat-card user-success">
+            <i class="fas fa-percentage"></i>
+            <div>
+                <h3>Attendance Rate</h3>
+                <span class="stat-number" id="percentage">Loading...</span>%
+            </div>
+        </div>
+    </div>
+
+    <div class="user-actions">
+        <a href="{{ url_for('index') }}" class="btn-primary">
+            <i class="fas fa-home"></i> View Today's Attendance
+        </a>
+        <a href="{{ url_for('stats') }}" class="btn-secondary">
+            <i class="fas fa-chart-bar"></i> Statistics
+        </a>
+        <a href="{{ url_for('mark_attendance') }}" class="btn-success">
+            <i class="fas fa-video"></i> Mark Attendance
+        </a>
+    </div>
+
+    <div class="quick-stats">
+        <h3>System Status</h3>
+        <p>👥 <strong>{{ total_students or 0 }}</strong> total students registered</p>
+        <p>📊 Contact admin for detailed reports</p>
+    </div>
+</div>
+
+<script>
+    // Load stats
+    Promise.all([
+        fetch('/api/attendance-percentage').then(r => r.json()),
+        fetch('/api/stats').then(r => r.json())
+    ]).then(([percentageData, statsData]) => {
+        document.getElementById('present-count').textContent = percentageData.present;
+        document.getElementById('percentage').textContent = percentageData.percentage;
+    });
+</script>
+{% endblock %}

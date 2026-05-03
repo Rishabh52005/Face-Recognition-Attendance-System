@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+
+{% block title %}Sign Up - Face Attendance System{% endblock %}
+
+{% block content %}
+<div class="auth-container glassmorphism">
+    <div class="auth-card glass-card">
+        <div class="auth-header">
+            <div class="logo-circle">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <h2>Create Account</h2>
+            <p>Join the Face Attendance System</p>
+        </div>
+        
+        <form method="POST" class="modern-form">
+            <div class="form-group floating-label">
+                <input type="email" name="email" id="signup-email" placeholder=" " required>
+                <label for="signup-email">
+                    <i class="fas fa-envelope"></i>
+                    Email Address
+                </label>
+            </div>
+            
+            <div class="form-group floating-label">
+                <input type="password" name="password" id="signup-password" placeholder=" " required>
+                <label for="signup-password">
+                    <i class="fas fa-lock"></i>
+                    Password
+                </label>
+            </div>
+            
+            <div class="form-group floating-label">
+                <input type="password" name="confirm_password" id="signup-confirm" placeholder=" " required>
+                <label for="signup-confirm">
+                    <i class="fas fa-lock-open"></i>
+                    Confirm Password
+                </label>
+            </div>
+            
+            <div class="form-options">
+                <label class="checkbox-container">
+                    <input type="checkbox" name="terms" required>
+                    <span class="checkmark"></span>
+                    I agree to terms & conditions
+                </label>
+            </div>
+            
+            <button type="submit" class="btn-primary gradient">
+                <span class="btn-text">
+                    <i class="fas fa-user-plus"></i>
+                    Create Account
+                </span>
+                <span class="btn-loader hidden">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </span>
+            </button>
+        </form>
+        
+        <div class="divider">
+            <span>or</span>
+        </div>
+        
+        <div class="auth-footer">
+            <p>Already have an account? <a href="{{ url_for('login') }}" class="login-link">Sign in here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

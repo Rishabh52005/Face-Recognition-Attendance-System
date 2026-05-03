@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Today{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="hero-content">
+        <h1><i class="fas fa-clock"></i> Today's Attendance</h1>
+        <p>Track the live attendance snapshot for the current day.</p>
+        <p class="date-display"><i class="fas fa-calendar-day"></i> {{ today }}</p>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon present">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-info">
+            <h3 class="stat-number">{{ attendance|length }}</h3>
+            <p>Present Today</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon total">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-info">
+            <h3 class="stat-number">{{ total_students }}</h3>
+            <p>Total Students</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon percentage">
+            <i class="fas fa-percentage"></i>
+        </div>
+        <div class="stat-info">
+            <h3 class="stat-number percentage">{{ "%.1f"|format(percentage or 0) }}%</h3>
+            <p>Attendance Rate</p>
+        </div>
+    </div>
+</div><br>
+
+{% if current_user and current_user.role == 'admin' %}
+<div class="action-buttons">
+    <a href="{{ url_for('mark_attendance') }}" class="btn-success">
+        <i class="fas fa-video"></i> Mark Attendance
+    </a>
+    <a href="{{ url_for('register') }}" class="btn-primary">
+        <i class="fas fa-user-plus"></i> Register Student
+    </a>
+    <a href="{{ url_for('history') }}" class="btn-secondary">
+        <i class="fas fa-history"></i> View History
+    </a>
+</div><br>
+{% endif %}
+
+<div class="table-container">
+    <div class="table-header">
+        <div>
+            <h3><i class="fas fa-list"></i> Today's Attendance Records</h3>
+            <p class="table-note">{{ attendance|length }} student{{ '' if attendance|length == 1 else 's' }} marked present today.</p>
+        </div>
+        {% if current_user and current_user.role == 'admin' %}
+        <a href="{{ url_for('students') }}" class="btn-secondary">
+            <i class="fas fa-users"></i> View Students
+        </a>
+        {% endif %}
+    </div>
+
+    {% if attendance %}
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Roll No</th>
+                    <th>Check-in Time</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in attendance %}
+                <tr>
+                    <td>
+                        <div class="user-row">
+                            <div class="user-avatar">{{ record.name[0]|upper if record.name else 'U' }}</div>
+                            <span>{{ record.name or 'Unknown' }}</span>
+                        </div>
+                    </td>
+                    <td>{{ record.roll_no or 'N/A' }}</td>
+                    <td>{{ record.time }}</td>
+                    <td><span class="status present">Present</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-user-clock"></i>
+            <h3>No attendance yet</h3>
+            {% if current_user and current_user.role == 'admin' %}
+            <p>Start the camera flow to mark the first attendance record for today.</p>
+            <a href="{{ url_for('mark_attendance') }}" class="btn-primary">Open Attendance Camera</a>
+            {% else %}
+            <p>No attendance has been marked for today yet.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

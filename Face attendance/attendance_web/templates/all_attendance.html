@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+
+{% block title %}All Attendance - Face Attendance{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-list"></i> All Attendance Records (Admin Only)</h1>
+    <a href="{{ url_for('index') }}" class="btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="table-container">
+    <table class="attendance-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Student ID</th>
+                <th>Student Name</th>
+                <th>Roll No</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in all_attendance %}
+            <tr>
+                <td>{{ record.date }}</td>
+                <td>{{ record.time }}</td>
+                <td>{{ record.student_id }}</td>
+                <td>{{ record.name }}</td>
+                <td>{{ record.roll_no }}</td>
+                <td>
+                    <span class="status-present">Present</span>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6">No attendance records found</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
